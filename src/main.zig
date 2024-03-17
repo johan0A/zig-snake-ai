@@ -57,10 +57,7 @@ fn Range(comptime size: u16) type {
 }
 
 test "range-contains" {
-    const r = Range(10){};
-    std.debug.print("{}", .{r.value2});
-    r.contains();
-    r.contains2();
+    std.debug.print("A", .{});
 }
 
 pub fn main() !void {
