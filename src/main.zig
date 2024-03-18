@@ -31,14 +31,17 @@ const SnakeDirection = enum {
 };
 
 const GameState = struct {
-    value_grid: [GRID_SIZE * GRID_SIZE]CellState = undefined,
+    value_grid: [GRID_SIZE][GRID_SIZE]CellState = undefined,
     grid_size: u16 = GRID_SIZE,
     snake_head: [2]u16 = undefined,
     snake_head_rotation: SnakeDirection = undefined,
 
     pub fn init() GameState {
         const grid = GameState{
-            .value_grid = [_]CellState{CellState.empty} ** (GRID_SIZE * GRID_SIZE),
+            .value_grid = .{
+                [_]CellState{CellState.empty} ** GRID_SIZE,
+            } ** GRID_SIZE,
+
             .snake_head = .{ GRID_SIZE / 2, GRID_SIZE / 2 },
             .snake_head_rotation = SnakeDirection.up,
         };
@@ -46,11 +49,11 @@ const GameState = struct {
     }
 
     pub fn set(this: *@This(), x: u16, y: u16, value: CellState) void {
-        this.*.value_grid[x + y * this.grid_size] = value;
+        this.*.value_grid[x][y] = value;
     }
 
     pub fn get(this: @This(), x: u16, y: u16) CellState {
-        return this.value_grid[x + y * this.grid_size];
+        return this.value_grid[x][y];
     }
 
     pub fn showGrid(this: @This()) void {
