@@ -15,12 +15,19 @@ const CellState = union(CellStateType) {
 };
 
 const SnakeDirection = enum {
-    up = .{ 0, 1 },
-    right = .{ 1, 0 },
-    down = .{ 0, -1 },
-    left = .{ -1, 0 },
+    up,
+    right,
+    down,
+    left,
 
-    fn direction(this: @this()) !void {}
+    fn direction(this: SnakeDirection) [2]i8 {
+        return switch (this) {
+            .up => .{ 0, 1 },
+            .right => .{ 1, 0 },
+            .down => .{ 0, -1 },
+            .left => .{ -1, 0 },
+        };
+    }
 };
 
 const GameState = struct {
