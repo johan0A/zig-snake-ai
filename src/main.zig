@@ -2,49 +2,51 @@ const std = @import("std");
 
 const GRID_SIZE: u16 = 17;
 
-const Cell_state_type = enum {
+const CellStateType = enum {
     snake,
     fruit,
     empty,
 };
 
-const Cell_state = union(Cell_state_type) {
+const CellState = union(CellStateType) {
     snake: u8,
     fruit: void,
     empty: void,
 };
 
-const Snake_direction = enum([2]i8) {
+const SnakeDirection = enum {
     up = .{ 0, 1 },
     right = .{ 1, 0 },
     down = .{ 0, -1 },
     left = .{ -1, 0 },
+
+    fn direction(this: @this()) !void {}
 };
 
 const GameState = struct {
-    value_grid: [GRID_SIZE * GRID_SIZE]Cell_state = undefined,
+    value_grid: [GRID_SIZE * GRID_SIZE]CellState = undefined,
     grid_size: u16 = GRID_SIZE,
     snake_head: [2]u16 = undefined,
-    snake_head_rotation: Snake_direction = undefined,
+    snake_head_rotation: SnakeDirection = undefined,
 
     pub fn init() GameState {
         const grid = GameState{
-            .value_grid = [_]Cell_state{Cell_state.empty} ** (GRID_SIZE * GRID_SIZE),
+            .value_grid = [_]CellState{CellState.empty} ** (GRID_SIZE * GRID_SIZE),
             .snake_head = .{ GRID_SIZE / 2, GRID_SIZE / 2 },
-            .snake_head_rotation = Snake_direction.up,
+            .snake_head_rotation = SnakeDirection.up,
         };
         return grid;
     }
 
-    pub fn set(this: *@This(), x: u16, y: u16, value: Cell_state) void {
+    pub fn set(this: *@This(), x: u16, y: u16, value: CellState) void {
         this.*.value_grid[x + y * this.grid_size] = value;
     }
 
-    pub fn get(this: @This(), x: u16, y: u16) Cell_state {
+    pub fn get(this: @This(), x: u16, y: u16) CellState {
         return this.value_grid[x + y * this.grid_size];
     }
 
-    pub fn show_grid(this: @This()) void {
+    pub fn showGrid(this: @This()) void {
         for (0..this.grid_size) |_| {
             std.debug.print("==", .{});
         }
@@ -82,7 +84,7 @@ const AIcontroller = struct {
 
 pub fn main() !void {
     var grid = GameState.init();
-    grid.show_grid();
+    grid.showGrid();
     const controller = AIcontroller.init(&grid);
     std.debug.print("{}", .{controller.grid_state.grid_size});
 }
