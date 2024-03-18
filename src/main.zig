@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const GRID_SIZE: u16 = 17;
+
 const Cell_state_type = enum {
     snake,
     fruit,
@@ -12,66 +14,75 @@ const Cell_state = union(Cell_state_type) {
     empty: void,
 };
 
-fn GridState(comptime size: u16) type {
-    return struct {
-        value_grid: [size * size]Cell_state = undefined,
-        grid_size: u16 = size,
+const Snake_direction = enum([2]i8) {
+    up = .{ 0, 1 },
+    right = .{ 1, 0 },
+    down = .{ 0, -1 },
+    left = .{ -1, 0 },
+};
 
-        pub fn init() GridState(size) {
-            var grid = GridState(size){
-                .value_grid = [_]Cell_state{Cell_state.empty} ** (size * size),
-            };
+const GameState = struct {
+    value_grid: [GRID_SIZE * GRID_SIZE]Cell_state = undefined,
+    grid_size: u16 = GRID_SIZE,
+    snake_head: [2]u16 = undefined,
+    snake_head_rotation: Snake_direction = undefined,
 
-            grid.set(
-                grid.grid_size / 2,
-                grid.grid_size / 2,
-                Cell_state{ .snake = 0 },
-            );
+    pub fn init() GameState {
+        const grid = GameState{
+            .value_grid = [_]Cell_state{Cell_state.empty} ** (GRID_SIZE * GRID_SIZE),
+            .snake_head = .{ GRID_SIZE / 2, GRID_SIZE / 2 },
+            .snake_head_rotation = Snake_direction.up,
+        };
+        return grid;
+    }
 
-            return grid;
+    pub fn set(this: *@This(), x: u16, y: u16, value: Cell_state) void {
+        this.*.value_grid[x + y * this.grid_size] = value;
+    }
+
+    pub fn get(this: @This(), x: u16, y: u16) Cell_state {
+        return this.value_grid[x + y * this.grid_size];
+    }
+
+    pub fn show_grid(this: @This()) void {
+        for (0..this.grid_size) |_| {
+            std.debug.print("==", .{});
         }
-
-        pub fn set(this: *@This(), x: u16, y: u16, value: Cell_state) void {
-            this.*.value_grid[x + y * this.grid_size] = value;
-        }
-
-        pub fn get(this: @This(), x: u16, y: u16) Cell_state {
-            return this.value_grid[x + y * this.grid_size];
-        }
-
-        pub fn show_grid(this: @This()) void {
-            var i: u16 = 0;
-            while (i < this.grid_size - 1) : (i += 1) {
-                var j: u16 = 0;
-                while (j < this.grid_size - 1) : (j += 1) {
-                    switch (this.get(i, j)) {
-                        .empty => std.debug.print(" ", .{}),
-                        .fruit => std.debug.print("f", .{}),
-                        .snake => std.debug.print("*", .{}),
-                    }
-                    std.debug.print(" ", .{});
+        std.debug.print("\n", .{});
+        var i: u16 = 0;
+        while (i < this.grid_size - 1) : (i += 1) {
+            std.debug.print("=", .{});
+            var j: u16 = 0;
+            while (j < this.grid_size - 1) : (j += 1) {
+                switch (this.get(i, j)) {
+                    .empty => std.debug.print(" ", .{}),
+                    .fruit => std.debug.print("f", .{}),
+                    .snake => std.debug.print("*", .{}),
                 }
-                std.debug.print("\n", .{});
+                std.debug.print(" ", .{});
             }
+            std.debug.print("=\n", .{});
         }
-    };
-}
+        for (0..this.grid_size) |_| {
+            std.debug.print("==", .{});
+        }
+        std.debug.print("\n", .{});
+    }
+};
 
-fn Range(comptime size: u16) type {
-    return struct {
-        value: u16 = size,
-        value2: u16 = 5,
+const AIcontroller = struct {
+    grid_state: *GameState,
 
-        pub fn contains(this: @This()) void {
-            std.debug.print("{}", .{this.value});
-        }
-        pub fn contains2(this: @This()) void {
-            this.contains();
-        }
-    };
-}
+    fn init(gameState: *GameState) AIcontroller {
+        return AIcontroller{
+            .grid_state = gameState,
+        };
+    }
+};
 
 pub fn main() !void {
-    var grid = GridState(16).init();
+    var grid = GameState.init();
     grid.show_grid();
+    const controller = AIcontroller.init(&grid);
+    std.debug.print("{}", .{controller.grid_state.grid_size});
 }
