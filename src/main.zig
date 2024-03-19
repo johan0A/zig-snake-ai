@@ -48,10 +48,20 @@ const GameState = struct {
     }
 
     fn updateGameState(this: *@This()) void {
-        this.*.head_pos[0] = @intCast(@as(i32, this.head_pos[0]) + this.head_rot.direction()[0]);
-        this.*.head_pos[1] = @intCast(@as(i32, this.head_pos[0]) + this.head_rot.direction()[1]);
-        // this.head_pos[0] += this.head_rot.direction()[0];
-        // this.head_pos[1] += this.head_rot.direction()[1];
+        var has_died: bool = false;
+
+        var ov = @addWithOverflow(this.*.head_pos[0], this.head_pos[0]);
+        if (ov[1] == 1) has_died = true;
+
+        ov = @addWithOverflow(this.*.head_pos[1], this.head_pos[1]);
+        if (ov[1] == 1) has_died = true;
+
+        if (this.head_pos[0] > this.grid_size or this.head_pos[1] > this.grid_size) has_died = true;
+
+        switch (this.get(this.*.head_pos[0], this.*.head_pos[0])) {
+            .snake => has_died = true,
+            else => {},
+        }
 
         this.set(this.head_pos[0], this.head_pos[1], CellState{ .snake = this.snake_len });
 
