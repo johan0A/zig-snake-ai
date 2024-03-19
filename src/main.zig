@@ -10,7 +10,6 @@ const CellStateType = enum {
 
 const CellState = union(CellStateType) {
     snake: u16,
-    fruit: void,
     empty: void,
 };
 
@@ -33,18 +32,39 @@ const GameState = struct {
     value_grid: [GRID_SIZE][GRID_SIZE]CellState = undefined,
     grid_size: u16 = GRID_SIZE,
     head_pos: [2]u16 = undefined,
+    fruit_pos: [2]u16 = undefined,
     head_rot: SnakeDirection = undefined,
+    base_snake_len: u16 = undefined,
     snake_len: u16 = undefined,
+    rng_gen: std.Random,
 
-    pub fn init(snake_len: u16) GameState {
+    fn init(snake_len: u16, rng_gen: std.Random) GameState {
         var grid = GameState{
+            .base_snake_len = snake_len,
+            .rng_gen = rng_gen,
+        };
+        grid.reset();
+        return grid;
+    }
+
+    fn create_new_fruit(this: @This()) void {
+        this.fruit_pos = .{
+            this.rng_gen.intRangeAtMost(u16, 0, this.grid_size - 1),
+            this.rng_gen.intRangeAtMost(u16, 0, this.grid_size - 1),
+        };
+    }
+
+    fn reset(this: *@This()) void {
+        const game_state = GameState{
             .value_grid = .{[_]CellState{CellState.empty} ** GRID_SIZE} ** GRID_SIZE,
             .head_pos = .{ GRID_SIZE / 2, GRID_SIZE / 2 },
+            .fruit_pos = .{ undefined, undefined },
             .head_rot = SnakeDirection.up,
-            .snake_len = snake_len,
+            .snake_len = this.base_snake_len,
+            .base_snake_len = this.base_snake_len,
+            .rng_gen = this.rng_gen,
         };
-        grid.updateGameState();
-        return grid;
+        this.* = game_state;
     }
 
     fn updateGameState(this: *@This()) void {
@@ -61,6 +81,12 @@ const GameState = struct {
         switch (this.get(this.*.head_pos[0], this.*.head_pos[0])) {
             .snake => has_died = true,
             else => {},
+        }
+
+        if (has_died) {
+            std.debug.print("dead", .{});
+            this.*.reset();
+            return;
         }
 
         this.set(this.head_pos[0], this.head_pos[1], CellState{ .snake = this.snake_len });
@@ -98,7 +124,6 @@ const GameState = struct {
             while (j < this.grid_size - 1) : (j += 1) {
                 switch (this.get(i, j)) {
                     .empty => std.debug.print(" ", .{}),
-                    .fruit => std.debug.print("f", .{}),
                     .snake => std.debug.print("*", .{}),
                 }
                 std.debug.print(" ", .{});
@@ -123,7 +148,15 @@ const AIcontroller = struct {
 };
 
 pub fn main() !void {
-    var grid = GameState.init(5);
+    var prng = std.rand.DefaultPrng.init(blk: {
+        var seed: u64 = undefined;
+        try std.os.getrandom(std.mem.asBytes(&seed));
+        break :blk seed;
+    });
+    const rng_gen = prng.random();
+    std.debug.print("{}\n", .{rng_gen.intRangeAtMost(u16, 10, 20)});
+
+    var grid = GameState.init(5, prng.random());
     grid.showGrid();
     const controller = AIcontroller.init(&grid);
     std.debug.print("{}", .{controller.grid_state.grid_size});
