@@ -112,21 +112,6 @@ const AIcontroller = struct {
     }
 };
 
-const struct1 = struct {
-    field1: CellState,
-};
-
-test "test" {
-    var var1 = struct1{
-        .field1 = CellState{ .snake = 1 },
-    };
-
-    switch (var1.field1) {
-        .snake => |*snake| snake.* += 1,
-        else => {},
-    }
-}
-
 pub fn main() !void {
     var grid = GameState.init(5);
     grid.showGrid();
