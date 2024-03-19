@@ -9,7 +9,7 @@ const CellStateType = enum {
 };
 
 const CellState = union(CellStateType) {
-    snake: u8,
+    snake: u16,
     fruit: void,
     empty: void,
 };
@@ -19,7 +19,6 @@ const SnakeDirection = enum {
     right,
     down,
     left,
-
     fn direction(this: SnakeDirection) [2]i8 {
         return switch (this) {
             .up => .{ 0, 1 },
@@ -33,19 +32,40 @@ const SnakeDirection = enum {
 const GameState = struct {
     value_grid: [GRID_SIZE][GRID_SIZE]CellState = undefined,
     grid_size: u16 = GRID_SIZE,
-    snake_head: [2]u16 = undefined,
-    snake_head_rotation: SnakeDirection = undefined,
+    head_pos: [2]u16 = undefined,
+    head_rot: SnakeDirection = undefined,
+    snake_len: u16 = undefined,
 
-    pub fn init() GameState {
-        const grid = GameState{
-            .value_grid = .{
-                [_]CellState{CellState.empty} ** GRID_SIZE,
-            } ** GRID_SIZE,
-
-            .snake_head = .{ GRID_SIZE / 2, GRID_SIZE / 2 },
-            .snake_head_rotation = SnakeDirection.up,
+    pub fn init(snake_len: u16) GameState {
+        var grid = GameState{
+            .value_grid = .{[_]CellState{CellState.empty} ** GRID_SIZE} ** GRID_SIZE,
+            .head_pos = .{ GRID_SIZE / 2, GRID_SIZE / 2 },
+            .head_rot = SnakeDirection.up,
+            .snake_len = snake_len,
         };
+        grid.updateGameState();
         return grid;
+    }
+
+    fn updateGameState(this: *@This()) void {
+        this.*.head_pos[0] = @intCast(@as(i32, this.head_pos[0]) + this.head_rot.direction()[0]);
+        this.*.head_pos[1] = @intCast(@as(i32, this.head_pos[0]) + this.head_rot.direction()[1]);
+        // this.head_pos[0] += this.head_rot.direction()[0];
+        // this.head_pos[1] += this.head_rot.direction()[1];
+
+        this.set(this.head_pos[0], this.head_pos[1], CellState{ .snake = this.snake_len });
+
+        var i: u16 = 0;
+        while (i < this.grid_size - 1) : (i += 1) {
+            var j: u16 = 0;
+            while (j < this.grid_size - 1) : (j += 1) {
+                var square = this.get(i, j);
+                switch (square) {
+                    .snake => |*snake| snake.* -= 1,
+                    else => {},
+                }
+            }
+        }
     }
 
     pub fn set(this: *@This(), x: u16, y: u16, value: CellState) void {
@@ -92,8 +112,23 @@ const AIcontroller = struct {
     }
 };
 
+const struct1 = struct {
+    field1: CellState,
+};
+
+test "test" {
+    var var1 = struct1{
+        .field1 = CellState{ .snake = 1 },
+    };
+
+    switch (var1.field1) {
+        .snake => |*snake| snake.* += 1,
+        else => {},
+    }
+}
+
 pub fn main() !void {
-    var grid = GameState.init();
+    var grid = GameState.init(5);
     grid.showGrid();
     const controller = AIcontroller.init(&grid);
     std.debug.print("{}", .{controller.grid_state.grid_size});
