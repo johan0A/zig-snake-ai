@@ -64,11 +64,13 @@ const GameState = struct {
     fn updateGameState(this: *@This()) void {
         var has_died: bool = false;
 
-        var ov = @addWithOverflow(this.*.head_pos[0], this.head_pos[0]);
-        if (ov[1] == 1) has_died = true;
+        var result = @as(i32, this.head_pos[0]) + this.head_rot.toVector()[0];
+        if (result < 0) has_died = true;
+        this.*.head_pos[0] = @intCast(result);
 
-        ov = @addWithOverflow(this.*.head_pos[1], this.head_pos[1]);
-        if (ov[1] == 1) has_died = true;
+        result = @as(i32, this.head_pos[1]) + this.head_rot.toVector()[1];
+        if (result < 0) has_died = true;
+        this.*.head_pos[1] = @intCast(result);
 
         if (this.head_pos[0] > this.grid_size or this.head_pos[1] > this.grid_size) has_died = true;
 
