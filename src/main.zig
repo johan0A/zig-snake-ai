@@ -113,26 +113,28 @@ const GameState = struct {
     }
 
     pub fn showGrid(this: @This()) void {
-        for (0..this.grid_size) |_| {
-            std.debug.print("==", .{});
-        }
+        for (0..(this.grid_size + 2) * 2) |_| std.debug.print("=", .{});
         std.debug.print("\n", .{});
+
         var i: u16 = 0;
-        while (i < this.grid_size - 1) : (i += 1) {
+        while (i < this.grid_size) : (i += 1) {
             std.debug.print("=", .{});
             var j: u16 = 0;
-            while (j < this.grid_size - 1) : (j += 1) {
+            while (j < this.grid_size) : (j += 1) {
+                std.debug.print(" ", .{});
+                if (i == this.fruit_pos[0] and j == this.fruit_pos[1]) {
+                    std.debug.print("f", .{});
+                    continue;
+                }
                 switch (this.get(i, j)) {
                     .empty => std.debug.print(" ", .{}),
                     .snake => std.debug.print("*", .{}),
                 }
-                std.debug.print(" ", .{});
             }
-            std.debug.print("=\n", .{});
+            std.debug.print("  =\n", .{});
         }
-        for (0..this.grid_size) |_| {
-            std.debug.print("==", .{});
-        }
+
+        for (0..(this.grid_size + 2) * 2) |_| std.debug.print("=", .{});
         std.debug.print("\n", .{});
     }
 };
