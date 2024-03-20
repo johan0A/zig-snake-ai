@@ -2,23 +2,16 @@ const std = @import("std");
 
 const GRID_SIZE: u16 = 17;
 
-const CellStateType = enum {
-    snake,
-    fruit,
-    empty,
-};
+const CellStateType = enum { snake, empty };
 
-const CellState = union(CellStateType) {
-    snake: u16,
-    empty: void,
-};
+const CellState = union(CellStateType) { snake: u16, empty: void };
 
 const SnakeDirection = enum {
     up,
     right,
     down,
     left,
-    fn direction(this: SnakeDirection) [2]i8 {
+    fn toVector(this: SnakeDirection) [2]i8 {
         return switch (this) {
             .up => .{ 0, 1 },
             .right => .{ 1, 0 },
