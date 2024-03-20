@@ -40,7 +40,7 @@ const GameState = struct {
         return grid;
     }
 
-    fn create_new_fruit(this: *@This()) void {
+    fn new_fruit_at_random_pos(this: *@This()) void {
         this.*.fruit_pos = .{
             this.rng_gen.intRangeAtMost(u16, 0, this.grid_size - 1),
             this.rng_gen.intRangeAtMost(u16, 0, this.grid_size - 1),
@@ -57,7 +57,7 @@ const GameState = struct {
             .default_snake_len = this.default_snake_len,
             .rng_gen = this.rng_gen,
         };
-        game_state.create_new_fruit();
+        game_state.new_fruit_at_random_pos();
         this.* = game_state;
     }
 
