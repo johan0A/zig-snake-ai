@@ -112,8 +112,9 @@ const GameState = struct {
         for (0..(this.grid_size + 2) * 2) |_| std.debug.print("=", .{});
         std.debug.print("\n", .{});
 
-        var i: u16 = 0;
-        while (i < this.grid_size) : (i += 1) {
+        var i: i32 = this.grid_size - 1;
+        while (i >= 0) : (i -= 1) {
+            const i_u8: u8 = @intCast(i);
             std.debug.print("=", .{});
             var j: u16 = 0;
             while (j < this.grid_size) : (j += 1) {
@@ -122,7 +123,7 @@ const GameState = struct {
                     std.debug.print("f", .{});
                     continue;
                 }
-                switch (this.get(i, j)) {
+                switch (this.get(j, i_u8)) {
                     .empty => std.debug.print(" ", .{}),
                     .snake => std.debug.print("*", .{}),
                 }
