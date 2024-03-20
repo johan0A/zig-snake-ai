@@ -27,36 +27,37 @@ const GameState = struct {
     head_pos: [2]u16 = undefined,
     fruit_pos: [2]u16 = undefined,
     head_rot: SnakeDirection = undefined,
-    base_snake_len: u16 = undefined,
+    default_snake_len: u16 = undefined,
     snake_len: u16 = undefined,
     rng_gen: std.Random,
 
     fn init(snake_len: u16, rng_gen: std.Random) GameState {
         var grid = GameState{
-            .base_snake_len = snake_len,
+            .default_snake_len = snake_len,
             .rng_gen = rng_gen,
         };
         grid.reset();
         return grid;
     }
 
-    fn create_new_fruit(this: @This()) void {
-        this.fruit_pos = .{
+    fn create_new_fruit(this: *@This()) void {
+        this.*.fruit_pos = .{
             this.rng_gen.intRangeAtMost(u16, 0, this.grid_size - 1),
             this.rng_gen.intRangeAtMost(u16, 0, this.grid_size - 1),
         };
     }
 
     fn reset(this: *@This()) void {
-        const game_state = GameState{
+        var game_state = GameState{
             .value_grid = .{[_]CellState{CellState.empty} ** GRID_SIZE} ** GRID_SIZE,
             .head_pos = .{ GRID_SIZE / 2, GRID_SIZE / 2 },
             .fruit_pos = .{ undefined, undefined },
             .head_rot = SnakeDirection.up,
-            .snake_len = this.base_snake_len,
-            .base_snake_len = this.base_snake_len,
+            .snake_len = this.default_snake_len,
+            .default_snake_len = this.default_snake_len,
             .rng_gen = this.rng_gen,
         };
+        game_state.create_new_fruit();
         this.* = game_state;
     }
 
