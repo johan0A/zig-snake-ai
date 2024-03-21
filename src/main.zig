@@ -74,7 +74,7 @@ const GameState = struct {
 
         if (this.head_pos[0] > this.grid_size or this.head_pos[1] > this.grid_size) has_died = true;
 
-        switch (this.get(this.*.head_pos[0], this.*.head_pos[0])) {
+        switch (this.get(this.*.head_pos)) {
             .snake => has_died = true,
             else => {},
         }
@@ -85,13 +85,13 @@ const GameState = struct {
             return;
         }
 
-        this.set(this.head_pos[0], this.head_pos[1], CellState{ .snake = this.snake_len });
+        this.set(this.head_pos, CellState{ .snake = this.snake_len });
 
         var i: u16 = 0;
         while (i < this.grid_size - 1) : (i += 1) {
             var j: u16 = 0;
             while (j < this.grid_size - 1) : (j += 1) {
-                var square = this.get(i, j);
+                var square = this.get(.{ i, j });
                 switch (square) {
                     .snake => |*snake| snake.* -= 1,
                     else => {},
@@ -100,12 +100,12 @@ const GameState = struct {
         }
     }
 
-    pub fn set(this: *@This(), x: u16, y: u16, value: CellState) void {
-        this.*.value_grid[x][y] = value;
+    pub fn set(this: *@This(), pos: u16[2], value: CellState) void {
+        this.*.value_grid[pos[0]][pos[0]] = value;
     }
 
-    pub fn get(this: @This(), x: u16, y: u16) CellState {
-        return this.value_grid[x][y];
+    pub fn get(this: @This(), pos: u16[2]) CellState {
+        return this.value_grid[pos[0]][pos[0]];
     }
 
     pub fn showGrid(this: @This()) void {
@@ -123,7 +123,7 @@ const GameState = struct {
                     std.debug.print("f", .{});
                     continue;
                 }
-                switch (this.get(j, i_u8)) {
+                switch (this.get(.{ j, i_u8 })) {
                     .empty => std.debug.print(" ", .{}),
                     .snake => std.debug.print("*", .{}),
                 }
