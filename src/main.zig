@@ -19,6 +19,22 @@ const SnakeDirection = enum {
             .left => .{ -1, 0 },
         };
     }
+
+    fn fromVector(array: i2[2]) GridDirection {
+        if (array[0] == 0) {
+            if (array[1] == 1) {
+                return GridDirection.up;
+            } else {
+                return GridDirection.down;
+            }
+        } else {
+            if (array[0] == 1) {
+                return GridDirection.right;
+            } else {
+                return GridDirection.left;
+            }
+        }
+    }
 };
 
 const GameState = struct {
