@@ -20,7 +20,7 @@ const GridDirection = enum {
         };
     }
 
-    fn fromVector(array: i2[2]) GridDirection {
+    fn fromVector(array: [2]i2) GridDirection {
         if (array[0] == 0) {
             if (array[1] == 1) {
                 return GridDirection.up;
@@ -164,7 +164,14 @@ const AIcontroller = struct {
     }
 
     fn get_neighbors(self: @This(), pos: [2]i32, direction: GridDirection) [2]i32 {
+<<<<<<< HEAD
+        return @as([2]i32, self.game_state.get([2]u16{
+            pos[0] +% direction.toVector()[0],
+            @truncate(u16, pos[1]) +% direction.toVector()[1],
+        }));
+=======
         return @as([2]i32, self.game_state.get(.{ pos[0] + direction.toVector()[0], pos[1] + direction.toVector()[1] }));
+>>>>>>> 448a38e75f1f1cdb7c3f8ce1b28d9d9747b55344
     }
 
     fn distance(pos1: [2]i32, pos2: [2]i32) f32 {
@@ -236,6 +243,11 @@ const AIcontroller = struct {
 
             if (std.mem.eql(i32, &current, &target)) {
                 var previous_on_path = previous_on_path_of_cell.get(current).?;
+<<<<<<< HEAD
+                while (!std.mem.eql(i32, &previous_on_path, &target)) {
+                    current = previous_on_path;
+                    previous_on_path = previous_on_path_of_cell.get(previous_on_path).?;
+=======
                 // while (!std.mem.allEqual(
                 //     [2]u16,
                 //     self.game_state.get(@truncate(previous_on_path)),
@@ -248,6 +260,7 @@ const AIcontroller = struct {
                 )) {
                     current = previous_on_path;
                     previous_on_path = previous_on_path_of_cell.get(previous_on_path);
+>>>>>>> 448a38e75f1f1cdb7c3f8ce1b28d9d9747b55344
                 }
                 return GridDirection.fromVector(.{
                     @truncate(current[0] - target[0]),
