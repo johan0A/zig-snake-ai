@@ -6,12 +6,12 @@ const CellStateType = enum { snake, empty };
 
 const CellState = union(CellStateType) { snake: u16, empty: void };
 
-const SnakeDirection = enum {
+const GridDirection = enum {
     up,
     right,
     down,
     left,
-    fn toVector(this: SnakeDirection) [2]i8 {
+    fn toVector(this: GridDirection) [2]i8 {
         return switch (this) {
             .up => .{ 0, 1 },
             .right => .{ 1, 0 },
@@ -20,7 +20,7 @@ const SnakeDirection = enum {
         };
     }
 
-    fn fromVector(array: i2[2]) GridDirection {
+    fn fromVector(array: [2]i2) GridDirection {
         if (array[0] == 0) {
             if (array[1] == 1) {
                 return GridDirection.up;
@@ -42,10 +42,10 @@ const GameState = struct {
     grid_size: u16 = GRID_SIZE,
     head_pos: [2]u16 = undefined,
     fruit_pos: [2]u16 = undefined,
-    head_rot: SnakeDirection = undefined,
+    head_rot: GridDirection = undefined,
     default_snake_len: u16 = undefined,
     snake_len: u16 = undefined,
-    rng_gen: std.Random,
+    rng_gen: std.Random = undefined,
 
     fn init(snake_len: u16, rng_gen: std.Random) GameState {
         var grid = GameState{
@@ -68,7 +68,7 @@ const GameState = struct {
             .value_grid = .{[_]CellState{CellState.empty} ** GRID_SIZE} ** GRID_SIZE,
             .head_pos = .{ GRID_SIZE / 2, GRID_SIZE / 2 },
             .fruit_pos = .{ undefined, undefined },
-            .head_rot = SnakeDirection.up,
+            .head_rot = GridDirection.up,
             .snake_len = this.default_snake_len,
             .default_snake_len = this.default_snake_len,
             .rng_gen = this.rng_gen,
@@ -120,7 +120,7 @@ const GameState = struct {
         this.*.value_grid[pos[0]][pos[0]] = value;
     }
 
-    pub fn get(this: @This(), pos: u16[2]) CellState {
+    pub fn get(this: @This(), pos: [2]u16) CellState {
         return this.value_grid[pos[0]][pos[0]];
     }
 
@@ -153,12 +153,123 @@ const GameState = struct {
 };
 
 const AIcontroller = struct {
-    grid_state: *GameState,
+    game_state: *GameState = undefined,
+    allocator: std.mem.Allocator = undefined,
 
-    fn init(gameState: *GameState) AIcontroller {
+    fn init(gameState: *GameState, allocator: std.mem.Allocator) AIcontroller {
         return AIcontroller{
-            .grid_state = gameState,
+            .game_state = gameState,
+            .allocator = allocator,
         };
+    }
+
+    fn get_neighbors(self: @This(), pos: [2]i32, direction: GridDirection) [2]i32 {
+        return @as([2]i32, self.game_state.get([2]u16{
+            pos[0] +% direction.toVector()[0],
+            @truncate(u16, pos[1]) +% direction.toVector()[1],
+        }));
+    }
+
+    fn distance(pos1: [2]i32, pos2: [2]i32) f32 {
+        return @sqrt(@as(f32, @floatFromInt((pos1[0] - pos2[0]) *| (pos1[0] + pos2[0]) + (pos1[1] - pos2[1]) *| (pos1[1] + pos2[1]))));
+    }
+
+    fn get_direction(self: @This(), target: [2]i32) !GridDirection {
+        const CellWithDistanceToTarget = struct {
+            cell: [2]i32,
+            distance_to_target: f32,
+        };
+
+        const LocalUtils = struct {
+            fn orderedInsert(boundary_cells: *std.ArrayList(CellWithDistanceToTarget), item_to_insert: CellWithDistanceToTarget) !void {
+                var range_start: usize = 0;
+                var range_end: usize = boundary_cells.items.len;
+                var sample_index: usize = undefined;
+
+                var result_index = while (range_end > range_start) {
+                    sample_index = range_start / 2 + range_end / 2;
+                    if (boundary_cells.items[sample_index].distance_to_target == item_to_insert.distance_to_target) {
+                        break sample_index;
+                    }
+
+                    if (boundary_cells.items[sample_index].distance_to_target > item_to_insert.distance_to_target) {
+                        range_start = sample_index + 1;
+                    } else {
+                        range_end = sample_index - 1;
+                    }
+                } else range_start;
+
+                while (result_index < boundary_cells.items.len and boundary_cells.items[result_index + 1] > item_to_insert) {
+                    result_index += 1;
+                }
+                try boundary_cells.insert(result_index, item_to_insert);
+            }
+        };
+
+        var boundary_cells = std.ArrayList(CellWithDistanceToTarget).init(self.allocator);
+        defer boundary_cells.deinit();
+
+        try boundary_cells.append(.{
+            .cell = [2]i32{
+                self.game_state.head_pos[0],
+                self.game_state.head_pos[1],
+            },
+            .distance_to_target = distance(target, .{
+                @as(i32, self.game_state.head_pos[0]),
+                @as(i32, self.game_state.head_pos[1]),
+            }),
+        });
+
+        var cell_score_map = std.AutoHashMap([2]i32, i32).init(self.allocator);
+        defer cell_score_map.deinit();
+
+        try cell_score_map.put(
+            .{
+                self.game_state.head_pos[0],
+                self.game_state.head_pos[0],
+            },
+            0,
+        );
+
+        var previous_on_path_of_cell = std.AutoHashMap([2]i32, [2]i32).init(self.allocator);
+        defer previous_on_path_of_cell.deinit();
+
+        while (boundary_cells.items.len > 0) {
+            var current = boundary_cells.pop().cell;
+
+            if (std.mem.eql(i32, &current, &target)) {
+                var previous_on_path = previous_on_path_of_cell.get(current).?;
+                while (!std.mem.eql(i32, &previous_on_path, &target)) {
+                    current = previous_on_path;
+                    previous_on_path = previous_on_path_of_cell.get(previous_on_path).?;
+                }
+                return GridDirection.fromVector(.{
+                    @truncate(current[0] - target[0]),
+                    @truncate(current[1] - target[1]),
+                });
+            }
+
+            for (std.enums.values(GridDirection)) |i| {
+                const neighbor = self.get_neighbors(target, i);
+
+                const neighbor_possible_new_score = cell_score_map.get(current) + 1;
+                const neighbor_cell_score = cell_score_map.get(neighbor);
+
+                if (neighbor_cell_score == null or neighbor_possible_new_score > neighbor_cell_score.?) {
+                    switch (self.game_state.get(@truncate(neighbor))) {
+                        .snake => |snake| if (snake <= neighbor_possible_new_score) continue,
+                        else => {},
+                    }
+                    if (neighbor_cell_score == null) {
+                        try LocalUtils.orderedInsert(boundary_cells, self.distance(neighbor, target));
+                    }
+                    try previous_on_path_of_cell.put(neighbor, current);
+                    try cell_score_map.put(neighbor, neighbor_possible_new_score);
+                }
+            }
+        }
+        std.debug.print("failed to find path\n", .{});
+        return GridDirection.up;
     }
 };
 
@@ -168,11 +279,16 @@ pub fn main() !void {
         try std.os.getrandom(std.mem.asBytes(&seed));
         break :blk seed;
     });
-    const rng_gen = prng.random();
-    std.debug.print("{}\n", .{rng_gen.intRangeAtMost(u16, 10, 20)});
+
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer if (gpa.deinit() == .leak) std.debug.print("Allocator leaked!\n", .{});
+    const alocator = gpa.allocator();
 
     var grid = GameState.init(5, prng.random());
     grid.showGrid();
-    const controller = AIcontroller.init(&grid);
-    std.debug.print("{}", .{controller.grid_state.grid_size});
+
+    const controller = AIcontroller.init(&grid, alocator);
+
+    _ = try controller.get_direction(.{ 0, 0 });
+    std.debug.print("{}\n", .{controller.game_state.grid_size});
 }
