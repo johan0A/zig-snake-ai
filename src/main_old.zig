@@ -4,38 +4,6 @@ const GRID_SIZE: u16 = 17;
 
 const CellStateType = enum { snake, empty };
 
-const CellState = union(CellStateType) { snake: u16, empty: void };
-
-const GridDirection = enum {
-    up,
-    right,
-    down,
-    left,
-    fn toVector(this: GridDirection) [2]i8 {
-        return switch (this) {
-            .up => .{ 0, 1 },
-            .right => .{ 1, 0 },
-            .down => .{ 0, -1 },
-            .left => .{ -1, 0 },
-        };
-    }
-
-    fn fromVector(array: [2]i2) GridDirection {
-        if (array[0] == 0) {
-            if (array[1] == 1) {
-                return GridDirection.up;
-            } else {
-                return GridDirection.down;
-            }
-        } else {
-            if (array[0] == 1) {
-                return GridDirection.right;
-            } else {
-                return GridDirection.left;
-            }
-        }
-    }
-};
 
 const GameState = struct {
     value_grid: [GRID_SIZE][GRID_SIZE]CellState = undefined,
