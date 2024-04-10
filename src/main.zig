@@ -85,7 +85,7 @@ fn GameState(comptime grid_size: usize) type {
                 .rng_gen = self.rng_gen,
             };
             game_state.new_fruit_at_random_pos();
-            game_state.value_grid[@intCast(game_state.head_pos[0])][@intCast(game_state.head_pos[1])] = CellState{ .snake = self.snake_len };
+            game_state.value_grid[@intCast(game_state.head_pos[0])][@intCast(game_state.head_pos[1])] = CellState{ .snake = game_state.snake_len };
             self.* = game_state;
         }
 
