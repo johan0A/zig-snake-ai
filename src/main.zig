@@ -159,14 +159,6 @@ fn GameState(comptime grid_size: usize) type {
     };
 }
 
-fn intCastArray(comptime T: type, array: anytype) [array.len]T {
-    var result: [array.len]T = undefined;
-    for (&result, 0..) |*value, i| {
-        value.* = @intCast(array[i]);
-    }
-    return result;
-}
-
 test "test" {
     var prng = std.rand.DefaultPrng.init(blk: {
         var seed: u64 = undefined;
