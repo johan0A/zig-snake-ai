@@ -104,11 +104,13 @@ fn GameState(comptime grid_size: usize) type {
                 self.head_pos[1] +%= @intCast(self.head_rot.toVector()[1]);
             }
 
-            if (self.head_pos[0] > _grid_size or self.head_pos[1] > _grid_size) has_died = true;
+            if (self.head_pos[0] >= _grid_size or self.head_pos[1] >= _grid_size) has_died = true;
 
+            if (has_died != true) {
             switch (self.get(self.*.head_pos)) {
                 .snake => has_died = true,
                 else => {},
+                }
             }
 
             if (has_died) {
