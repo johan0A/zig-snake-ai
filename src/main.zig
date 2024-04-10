@@ -89,7 +89,47 @@ fn GameState(comptime grid_size: usize) type {
             self.* = game_state;
         }
 
-        pub fn showGrid(self: @This()) void {
+        fn updateGameState(self: *Self) void {
+            var has_died: bool = false;
+
+            if (self.head_pos[0] == 0 and self.head_rot.toVector()[0] == -1) {
+                has_died = true;
+            } else {
+                self.head_pos[0] +%= @intCast(self.head_rot.toVector()[0]);
+            }
+
+            if (self.head_pos[1] == 0 and self.head_rot.toVector()[1] == -1) {
+                has_died = true;
+            } else {
+                self.head_pos[1] +%= @intCast(self.head_rot.toVector()[1]);
+            }
+
+            if (self.head_pos[0] > _grid_size or self.head_pos[1] > _grid_size) has_died = true;
+
+            switch (self.get(self.*.head_pos)) {
+                .snake => has_died = true,
+                else => {},
+            }
+
+            if (has_died) {
+                std.debug.print("dead", .{});
+                self.*.reset();
+                return;
+            }
+
+            self.value_grid[self.head_pos[0]][self.head_pos[1]] = CellState{ .snake = self.snake_len };
+
+            for (0.._grid_size) |y| {
+                for (0.._grid_size) |x| {
+                    switch (self.value_grid[x][_grid_size - y - 1]) {
+                        .snake => |*cell| {
+                            if (cell.* > 0) cell.* -= 1 else self.value_grid[x][_grid_size - y - 1] = CellState.empty;
+                        },
+                        else => {},
+                    }
+                }
+            }
+        }
             for (0..(_grid_size + 2) * 2) |_| std.debug.print("=", .{});
             std.debug.print("\n", .{});
 
