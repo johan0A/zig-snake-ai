@@ -153,6 +153,31 @@ fn GameState(comptime grid_size: usize) type {
     };
 }
 
+const AIcontroller = struct {
+    game_state: *GameState = undefined,
+    allocator: std.mem.Allocator = undefined,
+
+    fn init(gameState: *GameState, allocator: std.mem.Allocator) AIcontroller {
+        return AIcontroller{
+            .game_state = gameState,
+            .allocator = allocator,
+        };
+    }
+
+    fn get_neighbors(self: @This(), pos: @Vector(2, usize)) [4]@Vector(2, usize) {
+        var result: [4]@Vector(2, usize) = undefined;
+        inline for (std.enums.values(GridDirection), 0..) |value, i| {
+            result[i] = pos + value.toVector();
+        }
+    }
+
+    fn distance(pos1: @Vector(2, u32), pos2: @Vector(2, u32)) i32 {
+        return (pos1[0] - pos2[0]) *| (pos1[0] + pos2[0]) + (pos1[1] - pos2[1]) *| (pos1[1] + pos2[1]);
+    }
+
+    fn get_direction(self: @This(), target: [2]i32) !GridDirection {}
+};
+
 test "test" {
     var prng = std.rand.DefaultPrng.init(blk: {
         var seed: u64 = undefined;
