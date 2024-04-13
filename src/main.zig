@@ -59,14 +59,6 @@ fn GameState(comptime grid_size: usize) type {
             return grid;
         }
 
-        pub fn set(this: *Self, pos: @Vector(2, usize), value: CellState) void {
-            this.*.value_grid[pos[0]][pos[0]] = value;
-        }
-
-        pub fn get(this: *Self, pos: @Vector(2, usize)) CellState {
-            return this.value_grid[pos[0]][pos[1]];
-        }
-
         pub fn new_fruit_at_random_pos(self: *Self) void {
             self.*.fruit_pos = .{
                 self.rng_gen.intRangeAtMost(usize, 0, _grid_size - 1),
