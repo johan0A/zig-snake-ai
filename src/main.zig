@@ -163,12 +163,26 @@ test "test" {
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer if (gpa.deinit() == .leak) std.debug.print("Allocator leaked!\n", .{});
-    // const alocator = gpa.allocator();
 
-    const grid = GameState(16).init(3, random);
-    // std.debug.print("{any}\n", .{grid});
-
-    grid.showGrid();
+    var grid = GameState(16).init(10, random);
+    grid.printGrid();
+    grid.head_rot = GridDirection.down;
+    grid.updateGameState();
+    grid.head_rot = GridDirection.left;
+    grid.updateGameState();
+    grid.head_rot = GridDirection.left;
+    grid.updateGameState();
+    grid.head_rot = GridDirection.down;
+    grid.updateGameState();
+    grid.head_rot = GridDirection.down;
+    grid.updateGameState();
+    grid.head_rot = GridDirection.left;
+    grid.updateGameState();
+    grid.head_rot = GridDirection.left;
+    grid.updateGameState();
+    grid.head_rot = GridDirection.down;
+    grid.updateGameState();
+    grid.printGrid();
 }
 
 pub fn main() !void {
