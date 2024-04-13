@@ -87,13 +87,13 @@ fn GameState(comptime grid_size: usize) type {
             if (self.head_pos[0] == 0 and self.head_rot.toVector()[0] == -1) {
                 has_died = true;
             } else {
-                self.head_pos[0] +%= @intCast(self.head_rot.toVector()[0]);
+                self.head_pos[0] +%= @bitCast(@as(isize, @intCast(self.head_rot.toVector()[0])));
             }
 
             if (self.head_pos[1] == 0 and self.head_rot.toVector()[1] == -1) {
                 has_died = true;
             } else {
-                self.head_pos[1] +%= @intCast(self.head_rot.toVector()[1]);
+                self.head_pos[1] +%= @bitCast(@as(isize, @intCast(self.head_rot.toVector()[1])));
             }
 
             if (self.head_pos[0] >= _grid_size or self.head_pos[1] >= _grid_size) has_died = true;
