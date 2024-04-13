@@ -128,7 +128,6 @@ fn GameState(comptime grid_size: usize) type {
         pub fn printGrid(self: Self) void {
             for (0..(_grid_size + 2) * 2) |_| std.debug.print("=", .{});
             std.debug.print("\n", .{});
-
             for (0.._grid_size) |y| {
                 std.debug.print("= ", .{});
                 for (0.._grid_size) |x| {
@@ -148,7 +147,6 @@ fn GameState(comptime grid_size: usize) type {
                 }
                 std.debug.print(" =\n", .{});
             }
-
             for (0..(_grid_size + 2) * 2) |_| std.debug.print("=", .{});
             std.debug.print("\n", .{});
         }
