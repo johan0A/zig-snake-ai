@@ -106,7 +106,7 @@ fn GameState(comptime grid_size: usize) type {
             }
 
             if (has_died) {
-                std.debug.print("dead", .{});
+                std.debug.print("dead\n", .{});
                 self.*.reset();
                 return;
             }
