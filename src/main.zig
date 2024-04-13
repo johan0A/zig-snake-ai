@@ -99,9 +99,9 @@ fn GameState(comptime grid_size: usize) type {
             if (self.head_pos[0] >= _grid_size or self.head_pos[1] >= _grid_size) has_died = true;
 
             if (has_died != true) {
-            switch (self.get(self.*.head_pos)) {
-                .snake => has_died = true,
-                else => {},
+                switch (self.get(self.*.head_pos)) {
+                    .snake => has_died = true,
+                    else => {},
                 }
             }
 
