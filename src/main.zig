@@ -139,7 +139,11 @@ fn GameState(comptime grid_size: usize) type {
                     }
                     switch (self.value_grid[x][_grid_size - y - 1]) {
                         .empty => std.debug.print(" ", .{}),
-                        .snake => std.debug.print("*", .{}),
+                        .snake => |*snake| if (snake.* <= 9) {
+                            std.debug.print("{}", .{snake.*});
+                        } else {
+                            std.debug.print("*", .{});
+                        },
                     }
                 }
                 std.debug.print(" =\n", .{});
