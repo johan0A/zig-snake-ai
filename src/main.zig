@@ -43,10 +43,10 @@ fn GameState(comptime grid_size: usize) type {
         snake_len: u32 = undefined,
         default_snake_len: u32 = undefined,
 
-        head_pos: @Vector(2, usize) = undefined,
+        head_pos: @Vector(2, isize) = undefined,
         head_rot: GridDirection = undefined,
 
-        fruit_pos: @Vector(2, usize) = undefined,
+        fruit_pos: @Vector(2, isize) = undefined,
 
         rng_gen: std.Random = undefined,
 
@@ -59,10 +59,10 @@ fn GameState(comptime grid_size: usize) type {
             return grid;
         }
 
-        pub fn new_fruit_at_random_pos(self: *Self) void {
+        pub fn moveFruitToRandomPos(self: *Self) void {
             self.*.fruit_pos = .{
-                self.rng_gen.intRangeAtMost(usize, 0, _grid_size - 1),
-                self.rng_gen.intRangeAtMost(usize, 0, _grid_size - 1),
+                self.rng_gen.intRangeAtMost(@TypeOf(self.fruit_pos[0]), 0, grid_size - 1),
+                self.rng_gen.intRangeAtMost(@TypeOf(self.fruit_pos[0]), 0, grid_size - 1),
             };
         }
 
@@ -76,7 +76,7 @@ fn GameState(comptime grid_size: usize) type {
                 .default_snake_len = self.default_snake_len,
                 .rng_gen = self.rng_gen,
             };
-            game_state.new_fruit_at_random_pos();
+            game_state.moveFruitToRandomPos();
             game_state.value_grid[@intCast(game_state.head_pos[0])][@intCast(game_state.head_pos[1])] = CellState{ .snake = game_state.snake_len };
             self.* = game_state;
         }
