@@ -81,6 +81,15 @@ fn GameState(comptime grid_size: usize) type {
             self.* = game_state;
         }
 
+        fn outOfBounds(_: Self, pos: @Vector(2, isize)) bool {
+            return pos[0] < 0 or pos[1] < 0 or pos[0] >= grid_size or pos[1] >= grid_size;
+        }
+
+        fn get(self: Self, pos: @Vector(2, isize)) ?CellState {
+            if (self.outOfBounds(pos)) return null;
+            return self.value_grid[@intCast(pos[0])][@intCast(pos[1])];
+        }
+
         fn updateGameState(self: *Self) void {
             var has_died: bool = false;
 
