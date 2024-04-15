@@ -125,17 +125,17 @@ fn GameState(comptime grid_size: usize) type {
         }
 
         pub fn printGrid(self: Self) void {
-            for (0..(_grid_size + 2) * 2) |_| std.debug.print("=", .{});
+            for (0..(grid_size + 2) * 2) |_| std.debug.print("=", .{});
             std.debug.print("\n", .{});
-            for (0.._grid_size) |y| {
+            for (0..grid_size) |y| {
                 std.debug.print("= ", .{});
-                for (0.._grid_size) |x| {
+                for (0..grid_size) |x| {
                     std.debug.print(" ", .{});
                     if (x == self.fruit_pos[0] and y == self.fruit_pos[1]) {
                         std.debug.print("f", .{});
                         continue;
                     }
-                    switch (self.value_grid[x][_grid_size - y - 1]) {
+                    switch (self.value_grid[x][grid_size - y - 1]) {
                         .empty => std.debug.print(" ", .{}),
                         .snake => |*snake| if (snake.* <= 9) {
                             std.debug.print("{}", .{snake.*});
@@ -146,7 +146,7 @@ fn GameState(comptime grid_size: usize) type {
                 }
                 std.debug.print(" =\n", .{});
             }
-            for (0..(_grid_size + 2) * 2) |_| std.debug.print("=", .{});
+            for (0..(grid_size + 2) * 2) |_| std.debug.print("=", .{});
             std.debug.print("\n", .{});
         }
     };
