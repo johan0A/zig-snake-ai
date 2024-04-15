@@ -68,8 +68,8 @@ fn GameState(comptime grid_size: usize) type {
 
         pub fn reset(self: *Self) void {
             var game_state = Self{
-                .value_grid = .{[_]CellState{CellState.empty} ** _grid_size} ** _grid_size,
-                .head_pos = .{ @divTrunc(_grid_size, 2), @divTrunc(_grid_size, 2) },
+                .value_grid = .{[_]CellState{CellState.empty} ** grid_size} ** grid_size,
+                .head_pos = .{ @divTrunc(grid_size, 2), @divTrunc(grid_size, 2) },
                 .fruit_pos = undefined,
                 .head_rot = GridDirection.up,
                 .snake_len = self.default_snake_len,
