@@ -91,47 +91,37 @@ fn GameState(comptime grid_size: usize) type {
         }
 
         fn updateGameState(self: *Self) void {
+            for (0..grid_size) |reverse_y| {
+                const y = grid_size - reverse_y - 1;
+                for (0..grid_size) |x| {
+                    switch (self.value_grid[x][y]) {
+                        .snake => |*cell| {
+                            if (cell.* > 0) cell.* -= 1 else self.value_grid[x][y] = CellState.empty;
+                        },
+                        else => {},
+                    }
+                }
+            }
+
+            self.head_pos += self.head_rot.toVector();
+
             var has_died: bool = false;
 
-            if (self.head_pos[0] == 0 and self.head_rot.toVector()[0] == -1) {
+            if (self.outOfBounds(self.head_pos)) {
                 has_died = true;
             } else {
-                self.head_pos[0] +%= @bitCast(@as(isize, @intCast(self.head_rot.toVector()[0])));
-            }
-
-            if (self.head_pos[1] == 0 and self.head_rot.toVector()[1] == -1) {
-                has_died = true;
-            } else {
-                self.head_pos[1] +%= @bitCast(@as(isize, @intCast(self.head_rot.toVector()[1])));
-            }
-
-            if (self.head_pos[0] >= _grid_size or self.head_pos[1] >= _grid_size) has_died = true;
-
-            if (has_died != true) {
-                switch (self.get(self.*.head_pos)) {
+                switch (self.get(self.*.head_pos).?) {
                     .snake => has_died = true,
                     else => {},
                 }
             }
-
             if (has_died) {
                 std.debug.print("dead\n", .{});
                 self.*.reset();
                 return;
             }
 
-            self.value_grid[self.head_pos[0]][self.head_pos[1]] = CellState{ .snake = self.snake_len };
-
-            for (0.._grid_size) |y| {
-                for (0.._grid_size) |x| {
-                    switch (self.value_grid[x][_grid_size - y - 1]) {
-                        .snake => |*cell| {
-                            if (cell.* > 0) cell.* -= 1 else self.value_grid[x][_grid_size - y - 1] = CellState.empty;
-                        },
-                        else => {},
-                    }
-                }
-            }
+            self.value_grid[@bitCast(self.head_pos[0])][@bitCast(self.head_pos[1])] = CellState{ .snake = self.snake_len };
         }
 
         pub fn printGrid(self: Self) void {
