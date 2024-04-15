@@ -91,8 +91,7 @@ fn GameState(comptime grid_size: usize) type {
         }
 
         fn updateGameState(self: *Self) void {
-            for (0..grid_size) |reverse_y| {
-                const y = grid_size - reverse_y - 1;
+            for (0..grid_size) |y| {
                 for (0..grid_size) |x| {
                     switch (self.value_grid[x][y]) {
                         .snake => |*cell| {
@@ -128,14 +127,15 @@ fn GameState(comptime grid_size: usize) type {
             for (0..(grid_size + 2) * 2) |_| std.debug.print("=", .{});
             std.debug.print("\n", .{});
             for (0..grid_size) |y| {
+                const reverse_y = grid_size - y - 1;
                 std.debug.print("= ", .{});
                 for (0..grid_size) |x| {
                     std.debug.print(" ", .{});
-                    if (x == self.fruit_pos[0] and y == self.fruit_pos[1]) {
+                    if (x == self.fruit_pos[0] and reverse_y == self.fruit_pos[1]) {
                         std.debug.print("f", .{});
                         continue;
                     }
-                    switch (self.value_grid[x][grid_size - y - 1]) {
+                    switch (self.value_grid[x][reverse_y]) {
                         .empty => std.debug.print(" ", .{}),
                         .snake => |*snake| if (snake.* <= 9) {
                             std.debug.print("{}", .{snake.*});
@@ -152,32 +152,93 @@ fn GameState(comptime grid_size: usize) type {
     };
 }
 
-const AIcontroller = struct {
-    game_state: *GameState = undefined,
-    allocator: std.mem.Allocator = undefined,
+fn AIcontroller(GameStateType: type) type {
+    return struct {
+        const Self = @This();
 
-    fn init(gameState: *GameState, allocator: std.mem.Allocator) AIcontroller {
-        return AIcontroller{
-            .game_state = gameState,
-            .allocator = allocator,
-        };
-    }
+        game_state: *GameState(GameStateType._grid_size) = undefined,
+        allocator: std.mem.Allocator = undefined,
 
-    fn get_neighbors(self: @This(), pos: @Vector(2, usize)) [4]@Vector(2, usize) {
-        var result: [4]@Vector(2, usize) = undefined;
-        inline for (std.enums.values(GridDirection), 0..) |value, i| {
-            result[i] = pos + value.toVector();
+        fn init(gameState: *GameState(GameStateType._grid_size), allocator: std.mem.Allocator) Self {
+            return Self{
+                .game_state = gameState,
+                .allocator = allocator,
+            };
         }
-    }
 
-    fn distance(pos1: @Vector(2, u32), pos2: @Vector(2, u32)) i32 {
-        return (pos1[0] - pos2[0]) *| (pos1[0] + pos2[0]) + (pos1[1] - pos2[1]) *| (pos1[1] + pos2[1]);
-    }
+        fn getCellNeighbors(self: Self, pos: @Vector(2, isize)) []@Vector(2, isize) {
+            var result: [4]@Vector(2, isize) = undefined;
+            var i: usize = 0;
+            for (std.enums.values(GridDirection)) |value| {
+                const newPos = pos + @as(@TypeOf(pos), @intCast(value.toVector()));
+                if (self.game_state.outOfBounds(newPos)) continue;
+                result[i] = newPos;
+                i += 1;
+            }
+            return result[0..i];
+        }
 
-    fn get_direction(self: @This(), target: [2]i32) !GridDirection {}
-};
+        fn distanceScore(pos1: @Vector(2, u32), pos2: @Vector(2, u32)) i32 {
+            return (pos1[0] - pos2[0]) *| (pos1[0] + pos2[0]) + (pos1[1] - pos2[1]) *| (pos1[1] + pos2[1]);
+        }
+
+        fn getPathToFruit(self: Self, target: @Vector(2, i32)) !?[]GridDirection {
+            var openset = std.PriorityQueue(@Vector(2, i32), void, struct {
+                fn compare(context: void, a: @Vector(2, i32), b: @Vector(2, i32)) std.math.Order {
+                    _ = context;
+                    return std.math.order(self.distanceScore(a, target), self.distanceScore(b, target));
+                }
+            }.compare).init(self.allocator, {});
+            defer openset.deinit();
+            try openset.push(target);
+
+            var cameFrom = std.AutoHashMap(@Vector(2, i32), @Vector(2, i32)).init(self.allocator, {});
+            defer cameFrom.deinit();
+
+            var gScore = std.AutoHashMap(@Vector(2, i32), i32).init(self.allocator, {});
+            defer gScore.deinit();
+            try gScore.put(target, 0);
+
+            var fScore = std.AutoHashMap(@Vector(2, i32), i32).init(self.allocator, {});
+            defer fScore.deinit();
+            try fScore.put(target, self.distanceScore(target, self.game_state.*.fruit_pos));
+
+            while (openset.count() >= 0) {
+                const current = openset.remove();
+                if (current == self.game_state.*.fruit_pos) {
+                    var path = std.ArrayList(GridDirection).init(self.allocator, {});
+                    var _current = current;
+                    while (cameFrom.get(current).?) |next| {
+                        path.append(GridDirection.fromVector(@intCast(next - current)));
+                        _current = next;
+                    }
+                    return path;
+                }
+
+                for (self.getCellNeighbors(current)) |neighbor| {
+                    const current_cell_value = self.game_state.get(current);
+                    const tentative_gScore = gScore.get(current).? + 1;
+                    switch (current_cell_value) {
+                        //.snake => |snake| if (snake > tentative_gScore) continue,
+                        .snake => continue,
+                        else => {},
+                    }
+
+                    if (tentative_gScore < gScore.get(neighbor).?) {
+                        cameFrom.put(neighbor, current);
+                        gScore.put(neighbor, tentative_gScore);
+                        fScore.put(neighbor, tentative_gScore + self.distanceScore(neighbor, self.game_state.*.fruit_pos));
+                        openset.push(neighbor);
+                    }
+                }
+            }
+        }
+    };
+}
 
 test "test" {
+    std.debug.print("{}\n", .{GameState(10)._grid_size});
+
     var prng = std.rand.DefaultPrng.init(blk: {
         var seed: u64 = undefined;
         try std.os.getrandom(std.mem.asBytes(&seed));
@@ -188,7 +249,7 @@ test "test" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer if (gpa.deinit() == .leak) std.debug.print("Allocator leaked!\n", .{});
 
-    var grid = GameState(16).init(10, random);
+    var grid = GameState(32).init(5, random);
     grid.printGrid();
     grid.head_rot = GridDirection.down;
     grid.updateGameState();
@@ -207,6 +268,14 @@ test "test" {
     grid.head_rot = GridDirection.down;
     grid.updateGameState();
     grid.printGrid();
+
+    const allocator = gpa.allocator();
+
+    const ai = AIcontroller(GameState(32)).init(&grid, allocator);
+
+    for (ai.getCellNeighbors(.{ 0, 0 })) |value| {
+        std.debug.print("{}", .{value});
+    }
 }
 
 pub fn main() !void {
