@@ -1,4 +1,5 @@
 const std = @import("std");
+const expect = std.testing.expect;
 
 const CellState = union(enum) { snake: u32, empty: void };
 
@@ -18,20 +19,35 @@ const GridDirection = enum {
 
     fn fromVector(vector: @Vector(2, i2)) GridDirection {
         if (vector[0] == 0) {
-            if (vector[1] == 1) {
+            if (vector[1] > 0) {
                 return GridDirection.up;
-            } else {
+            } else if (vector[1] < 0) {
                 return GridDirection.down;
             }
-        } else {
-            if (vector[0] == 1) {
+        } else if (vector[1] == 0) {
+            if (vector[0] > 0) {
                 return GridDirection.right;
-            } else {
+            } else if (vector[0] < 0) {
                 return GridDirection.left;
             }
         }
+        unreachable;
     }
 };
+
+test "GridDirection" {
+    // Test toVector method
+    try expect(@reduce(.And, GridDirection.toVector(GridDirection.up) == @Vector(2, i2){ 0, 1 }));
+    try expect(@reduce(.And, GridDirection.toVector(GridDirection.right) == @Vector(2, i2){ 1, 0 }));
+    try expect(@reduce(.And, GridDirection.toVector(GridDirection.down) == @Vector(2, i2){ 0, -1 }));
+    try expect(@reduce(.And, GridDirection.toVector(GridDirection.left) == @Vector(2, i2){ -1, 0 }));
+
+    // Test fromVector method
+    try expect(GridDirection.fromVector(.{ 0, 1 }) == GridDirection.up);
+    try expect(GridDirection.fromVector(.{ 1, 0 }) == GridDirection.right);
+    try expect(GridDirection.fromVector(.{ 0, -1 }) == GridDirection.down);
+    try expect(GridDirection.fromVector(.{ -1, 0 }) == GridDirection.left);
+}
 
 fn GameState(comptime grid_size: usize) type {
     return struct {
