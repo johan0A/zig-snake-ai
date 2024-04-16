@@ -303,14 +303,47 @@ fn AIcontroller(GameStateType: type) type {
     };
 }
 
-test "test" {
-    std.debug.print("{}\n", .{GameState(10)._grid_size});
+test "AIcontroller.getCellNeighbors" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer if (gpa.deinit() == .leak) std.debug.print("Allocator leaked!\n", .{});
 
-    var prng = std.rand.DefaultPrng.init(blk: {
-        var seed: u64 = undefined;
-        try std.os.getrandom(std.mem.asBytes(&seed));
-        break :blk seed;
-    });
+    const allocator = gpa.allocator();
+
+    var prng = std.rand.DefaultPrng.init(2);
+    const random = prng.random();
+
+    var grid = GameState(16).init(5, random);
+
+    const ai = AIcontroller(@TypeOf(grid)).init(&grid, allocator);
+
+    var neighbors_buf: [4]@Vector(2, i32) = undefined;
+
+    const ContainsFunc = struct {
+        fn contains(slice: []@Vector(2, i32), value: @Vector(2, i32)) bool {
+            for (slice) |v| {
+                if (@reduce(.And, v == value)) return true;
+            }
+            return false;
+        }
+    };
+
+    const neighbors = ai.getCellNeighbors(@Vector(2, i32){ 0, 0 }, &neighbors_buf);
+    try expect(neighbors.len == 2);
+    try expect(ContainsFunc.contains(neighbors, @Vector(2, i32){ 0, 1 }));
+    try expect(ContainsFunc.contains(neighbors, @Vector(2, i32){ 1, 0 }));
+
+    const _neighbors = ai.getCellNeighbors(@Vector(2, i32){ 1, 1 }, &neighbors_buf);
+    try expect(_neighbors.len == 4);
+    try expect(ContainsFunc.contains(_neighbors, @Vector(2, i32){ 0, 1 }));
+    try expect(ContainsFunc.contains(_neighbors, @Vector(2, i32){ 1, 0 }));
+    try expect(ContainsFunc.contains(_neighbors, @Vector(2, i32){ 1, 2 }));
+    try expect(ContainsFunc.contains(_neighbors, @Vector(2, i32){ 2, 1 }));
+
+    const __neighbors = ai.getCellNeighbors(@Vector(2, i32){ 15, 15 }, &neighbors_buf);
+    try expect(__neighbors.len == 2);
+    try expect(ContainsFunc.contains(__neighbors, @Vector(2, i32){ 15, 14 }));
+    try expect(ContainsFunc.contains(__neighbors, @Vector(2, i32){ 14, 15 }));
+}
     const random = prng.random();
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
