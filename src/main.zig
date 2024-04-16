@@ -77,10 +77,16 @@ fn GameState(comptime grid_size: usize) type {
         }
 
         pub fn moveFruitToRandomPos(self: *Self) void {
-            self.*.fruit_pos = .{
-                self.rng_gen.intRangeAtMost(@TypeOf(self.fruit_pos[0]), 0, grid_size - 1),
-                self.rng_gen.intRangeAtMost(@TypeOf(self.fruit_pos[0]), 0, grid_size - 1),
-            };
+            while (true) {
+                const pos = .{
+                    self.rng_gen.intRangeAtMost(@TypeOf(self.fruit_pos[0]), 0, grid_size - 1),
+                    self.rng_gen.intRangeAtMost(@TypeOf(self.fruit_pos[0]), 0, grid_size - 1),
+                };
+                if (self.get(pos).? == .empty) {
+                    self.*.fruit_pos = pos;
+                    break;
+                }
+            }
         }
 
         pub fn reset(self: *Self) void {
