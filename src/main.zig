@@ -140,7 +140,7 @@ fn GameState(comptime grid_size: usize) type {
                 return;
             }
 
-            self.value_grid[@bitCast(self.head_pos[0])][@bitCast(self.head_pos[1])] = CellState{ .snake = self.snake_len };
+            self.value_grid[@intCast(self.head_pos[0])][@intCast(self.head_pos[1])] = CellState{ .snake = self.snake_len };
         }
 
         pub fn printGrid(self: Self) void {
