@@ -34,7 +34,7 @@ const GridDirection = enum {
                 return GridDirection.left;
             }
         }
-        unreachable;
+        unreachable; // to change to an error
     }
 };
 
