@@ -199,72 +199,106 @@ fn AIcontroller(GameStateType: type) type {
             };
         }
 
-        fn getCellNeighbors(self: Self, pos: @Vector(2, isize)) []@Vector(2, isize) {
-            var result: [4]@Vector(2, isize) = undefined;
+        fn getCellNeighbors(self: Self, pos: @Vector(2, i32), buf: *[4]@Vector(2, i32)) []@Vector(2, i32) {
             var i: usize = 0;
+
             for (std.enums.values(GridDirection)) |value| {
-                const newPos = pos + @as(@TypeOf(pos), @intCast(value.toVector()));
+                const newPos = pos + value.toVector();
                 if (self.game_state.outOfBounds(newPos)) continue;
-                result[i] = newPos;
+                buf[i] = newPos;
                 i += 1;
             }
-            return result[0..i];
+
+            return buf[0..i];
         }
 
-        fn distanceScore(pos1: @Vector(2, u32), pos2: @Vector(2, u32)) i32 {
-            return (pos1[0] - pos2[0]) *| (pos1[0] + pos2[0]) + (pos1[1] - pos2[1]) *| (pos1[1] + pos2[1]);
+        fn distanceScore(_: Self, pos1: @Vector(2, i32), pos2: @Vector(2, i32)) i32 {
+            const dx = pos1[0] - pos2[0];
+            const dy = pos1[1] - pos2[1];
+            return dx *| dx +| dy *| dy;
         }
 
-        fn getPathToFruit(self: Self, target: @Vector(2, i32)) !?[]GridDirection {
-            var openset = std.PriorityQueue(@Vector(2, i32), void, struct {
-                fn compare(context: void, a: @Vector(2, i32), b: @Vector(2, i32)) std.math.Order {
-                    _ = context;
-                    return std.math.order(self.distanceScore(a, target), self.distanceScore(b, target));
+        fn getPathToTarget(self: Self, target: @Vector(2, i32)) !?[]GridDirection {
+            var arena = std.heap.ArenaAllocator.init(self.allocator);
+            defer arena.deinit();
+            const allocator = arena.allocator();
+
+            const start_pos = self.game_state.*.head_pos;
+
+            const Context = struct {
+                ai: *const Self,
+                target: @Vector(2, i32),
+            };
+            const context = Context{
+                .ai = &self,
+                .target = target,
+            };
+
+            var openset = std.PriorityQueue(@Vector(2, i32), Context, struct {
+                fn compare(ctx: Context, a: @Vector(2, i32), b: @Vector(2, i32)) std.math.Order {
+                    return std.math.order(ctx.ai.distanceScore(a, ctx.target), ctx.ai.distanceScore(b, ctx.target));
                 }
-            }.compare).init(self.allocator, {});
+            }.compare).init(allocator, context);
             defer openset.deinit();
-            try openset.push(target);
+            try openset.add(start_pos);
 
-            var cameFrom = std.AutoHashMap(@Vector(2, i32), @Vector(2, i32)).init(self.allocator, {});
+            var cameFrom = std.AutoHashMap(@Vector(2, i32), @Vector(2, i32)).init(allocator);
             defer cameFrom.deinit();
 
-            var gScore = std.AutoHashMap(@Vector(2, i32), i32).init(self.allocator, {});
+            var gScore = std.AutoHashMap(@Vector(2, i32), i32).init(allocator);
             defer gScore.deinit();
-            try gScore.put(target, 0);
+            try gScore.put(start_pos, 0);
 
-            var fScore = std.AutoHashMap(@Vector(2, i32), i32).init(self.allocator, {});
-            defer fScore.deinit();
-            try fScore.put(target, self.distanceScore(target, self.game_state.*.fruit_pos));
-
-            while (openset.count() >= 0) {
+            while (openset.count() > 0) {
+                // std.debug.print("count = {}\n", .{openset.count()});
                 const current = openset.remove();
-                if (current == self.game_state.*.fruit_pos) {
-                    var path = std.ArrayList(GridDirection).init(self.allocator, {});
+                // std.debug.print("check if finnished: current: {} == target: {}\n", .{ current, target });
+                if (@reduce(.And, current == target)) {
+                    var path = std.ArrayList(GridDirection).init(self.allocator);
+                    defer path.deinit();
                     var _current = current;
-                    while (cameFrom.get(current).?) |next| {
-                        path.append(GridDirection.fromVector(@intCast(next - current)));
+                    // std.debug.print("found path\n", .{});
+                    while (cameFrom.get(_current)) |next| {
+                        // std.debug.print("next: {}, current = {} , _current - next = {}, \n", .{ next, current, next - current });
+                        try path.append(GridDirection.fromVector(@truncate(_current - next)));
                         _current = next;
                     }
-                    return path;
+                    const path_slice = try path.toOwnedSlice();
+                    std.mem.reverse(GridDirection, path_slice);
+                    return path_slice;
                 }
 
-                for (self.getCellNeighbors(current)) |neighbor| {
-                    const current_cell_value = self.game_state.get(current);
+                var neighbors_buf: [4]@Vector(2, i32) = undefined;
+                for (self.getCellNeighbors(current, &neighbors_buf)) |neighbor| {
+                    // std.debug.print("count = {}\n", .{openset.count()});
+                    // std.debug.print("neighbor: {}\n", .{neighbor});
+
                     const tentative_gScore = gScore.get(current).? + 1;
-                    switch (current_cell_value) {
-                        //.snake => |snake| if (snake > tentative_gScore) continue,
-                        .snake => continue,
+
+                    const neighbor_cell_value = self.game_state.get(neighbor).?;
+                    switch (neighbor_cell_value) {
+                        .snake => |snake| if (snake > tentative_gScore) continue,
+                        // .snake => continue,
                         else => {},
                     }
 
-                    if (tentative_gScore < gScore.get(neighbor).?) {
-                        cameFrom.put(neighbor, current);
-                        gScore.put(neighbor, tentative_gScore);
-                        fScore.put(neighbor, tentative_gScore + self.distanceScore(neighbor, self.game_state.*.fruit_pos));
-                        openset.push(neighbor);
+                    if (gScore.get(neighbor)) |neighbor_gScore| {
+                        // std.debug.print("gscore exist for neighbor\n", .{});
+                        if (tentative_gScore < neighbor_gScore) {
+                            try cameFrom.put(neighbor, current);
+                            try gScore.put(neighbor, tentative_gScore);
+                            try openset.add(neighbor);
+                        }
+                    } else {
+                        // std.debug.print("gscore doesnt exist for neighbor\n", .{});
+                        try cameFrom.put(neighbor, current);
+                        try gScore.put(neighbor, tentative_gScore);
+                        try openset.add(neighbor);
                     }
                 }
             }
+            std.debug.print("couldnt find path\n", .{});
+            return null;
         }
     };
 }
