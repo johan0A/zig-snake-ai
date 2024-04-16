@@ -59,10 +59,10 @@ fn GameState(comptime grid_size: usize) type {
         snake_len: u32 = undefined,
         default_snake_len: u32 = undefined,
 
-        head_pos: @Vector(2, isize) = undefined,
+        head_pos: @Vector(2, i32) = undefined,
         head_rot: GridDirection = undefined,
 
-        fruit_pos: @Vector(2, isize) = undefined,
+        fruit_pos: @Vector(2, i32) = undefined,
 
         rng_gen: std.Random = undefined,
 
