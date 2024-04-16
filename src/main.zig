@@ -39,13 +39,11 @@ const GridDirection = enum {
 };
 
 test "GridDirection" {
-    // Test toVector method
     try expect(@reduce(.And, GridDirection.toVector(GridDirection.up) == @Vector(2, i2){ 0, 1 }));
     try expect(@reduce(.And, GridDirection.toVector(GridDirection.right) == @Vector(2, i2){ 1, 0 }));
     try expect(@reduce(.And, GridDirection.toVector(GridDirection.down) == @Vector(2, i2){ 0, -1 }));
     try expect(@reduce(.And, GridDirection.toVector(GridDirection.left) == @Vector(2, i2){ -1, 0 }));
 
-    // Test fromVector method
     try expect(GridDirection.fromVector(.{ 0, 1 }) == GridDirection.up);
     try expect(GridDirection.fromVector(.{ 1, 0 }) == GridDirection.right);
     try expect(GridDirection.fromVector(.{ 0, -1 }) == GridDirection.down);
