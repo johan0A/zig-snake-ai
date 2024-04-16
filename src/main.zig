@@ -106,6 +106,10 @@ fn GameState(comptime grid_size: usize) type {
             return self.value_grid[@intCast(pos[0])][@intCast(pos[1])];
         }
 
+        fn set(self: *Self, pos: @Vector(2, isize), value: CellState) void {
+            self.*.value_grid[@intCast(pos[0])][@intCast(pos[1])] = value;
+        }
+
         fn updateGameState(self: *Self) void {
             for (0..grid_size) |y| {
                 for (0..grid_size) |x| {
