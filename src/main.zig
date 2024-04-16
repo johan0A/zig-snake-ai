@@ -141,10 +141,16 @@ fn GameState(comptime grid_size: usize) type {
                     else => {},
                 }
             }
+
             if (has_died) {
                 std.debug.print("dead\n", .{});
                 self.*.reset();
                 return;
+            }
+
+            if (@reduce(.And, self.head_pos == self.fruit_pos)) {
+                self.snake_len += 1;
+                self.moveFruitToRandomPos();
             }
 
             self.value_grid[@intCast(self.head_pos[0])][@intCast(self.head_pos[1])] = CellState{ .snake = self.snake_len };
