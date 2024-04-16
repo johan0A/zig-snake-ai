@@ -1,7 +1,10 @@
 const std = @import("std");
 const expect = std.testing.expect;
 
-const CellState = union(enum) { snake: u32, empty: void };
+const CellState = union(enum) {
+    snake: u32,
+    empty: void,
+};
 
 const GridDirection = enum {
     up,
