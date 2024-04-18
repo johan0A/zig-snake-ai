@@ -188,11 +188,12 @@ fn GameState(comptime grid_size: usize) type {
 fn AIcontroller(GameStateType: type) type {
     return struct {
         const Self = @This();
+        const grid_size = GameStateType._grid_size;
 
-        game_state: *GameState(GameStateType._grid_size) = undefined,
+        game_state: *GameState(grid_size) = undefined,
         allocator: std.mem.Allocator = undefined,
 
-        fn init(gameState: *GameState(GameStateType._grid_size), allocator: std.mem.Allocator) Self {
+        fn init(gameState: *GameState(grid_size), allocator: std.mem.Allocator) Self {
             return Self{
                 .game_state = gameState,
                 .allocator = allocator,
