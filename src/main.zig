@@ -145,7 +145,7 @@ fn GameState(comptime grid_size: usize) type {
             }
 
             if (has_died) {
-                std.debug.print("dead\n", .{});
+                // std.debug.print("dead\n", .{});
                 self.*.reset();
                 return;
             }
@@ -245,57 +245,53 @@ fn AIcontroller(GameStateType: type) type {
             defer openset.deinit();
             try openset.add(start_pos);
 
-            var cameFrom = std.AutoHashMap(@Vector(2, i32), @Vector(2, i32)).init(allocator);
-            defer cameFrom.deinit();
+            var cameFrom: [grid_size][grid_size]?@Vector(2, i32) = .{.{null} ** grid_size} ** grid_size;
+            var gScore: [grid_size][grid_size]?i32 = .{.{null} ** grid_size} ** grid_size;
 
-            var gScore = std.AutoHashMap(@Vector(2, i32), i32).init(allocator);
-            defer gScore.deinit();
-            try gScore.put(start_pos, 0);
+            // Initialize gScore for start position
+            gScore[@intCast(start_pos[0])][@intCast(start_pos[1])] = 0;
+
+            var number_grid_read: i32 = 0;
 
             while (openset.count() > 0) {
-                // std.debug.print("count = {}\n", .{openset.count()});
                 const current = openset.remove();
-                // std.debug.print("check if finnished: current: {} == target: {}\n", .{ current, target });
+
                 if (@reduce(.And, current == target)) {
                     var path = std.ArrayList(GridDirection).init(self.allocator);
                     defer path.deinit();
                     var _current = current;
-                    // std.debug.print("found path\n", .{});
-                    while (cameFrom.get(_current)) |next| {
-                        // std.debug.print("next: {}, current = {} , _current - next = {}, \n", .{ next, current, next - current });
+
+                    while (cameFrom[@intCast(_current[0])][@intCast(_current[1])]) |next| {
                         try path.append(GridDirection.fromVector(@truncate(_current - next)));
                         _current = next;
                     }
                     const path_slice = try path.toOwnedSlice();
                     std.mem.reverse(GridDirection, path_slice);
+                    std.debug.print("{}\n", .{number_grid_read});
                     return path_slice;
                 }
 
                 var neighbors_buf: [4]@Vector(2, i32) = undefined;
                 for (self.getCellNeighbors(current, &neighbors_buf)) |neighbor| {
-                    // std.debug.print("count = {}\n", .{openset.count()});
-                    // std.debug.print("neighbor: {}\n", .{neighbor});
-
-                    const tentative_gScore = gScore.get(current).? + 1;
+                    const tentative_gScore = gScore[@intCast(current[0])][@intCast(current[1])].? + 1;
 
                     const neighbor_cell_value = self.game_state.get(neighbor).?;
+                    number_grid_read += 1;
+
                     switch (neighbor_cell_value) {
                         .snake => |snake| if (snake > tentative_gScore) continue,
-                        // .snake => continue,
                         else => {},
                     }
 
-                    if (gScore.get(neighbor)) |neighbor_gScore| {
-                        // std.debug.print("gscore exist for neighbor\n", .{});
+                    if (gScore[@intCast(neighbor[0])][@intCast(neighbor[1])]) |neighbor_gScore| {
                         if (tentative_gScore < neighbor_gScore) {
-                            try cameFrom.put(neighbor, current);
-                            try gScore.put(neighbor, tentative_gScore);
+                            cameFrom[@intCast(neighbor[0])][@intCast(neighbor[1])] = current;
+                            gScore[@intCast(neighbor[0])][@intCast(neighbor[1])] = tentative_gScore;
                             try openset.add(neighbor);
                         }
                     } else {
-                        // std.debug.print("gscore doesnt exist for neighbor\n", .{});
-                        try cameFrom.put(neighbor, current);
-                        try gScore.put(neighbor, tentative_gScore);
+                        cameFrom[@intCast(neighbor[0])][@intCast(neighbor[1])] = current;
+                        gScore[@intCast(neighbor[0])][@intCast(neighbor[1])] = tentative_gScore;
                         try openset.add(neighbor);
                     }
                 }
@@ -347,40 +343,38 @@ test "AIcontroller.getCellNeighbors" {
     try expect(ContainsFunc.contains(__neighbors, @Vector(2, i32){ 15, 14 }));
     try expect(ContainsFunc.contains(__neighbors, @Vector(2, i32){ 14, 15 }));
 }
-    const random = prng.random();
-
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer if (gpa.deinit() == .leak) std.debug.print("Allocator leaked!\n", .{});
-
-    var grid = GameState(32).init(5, random);
-    grid.printGrid();
-    grid.head_rot = GridDirection.down;
-    grid.updateGameState();
-    grid.head_rot = GridDirection.left;
-    grid.updateGameState();
-    grid.head_rot = GridDirection.left;
-    grid.updateGameState();
-    grid.head_rot = GridDirection.down;
-    grid.updateGameState();
-    grid.head_rot = GridDirection.down;
-    grid.updateGameState();
-    grid.head_rot = GridDirection.left;
-    grid.updateGameState();
-    grid.head_rot = GridDirection.left;
-    grid.updateGameState();
-    grid.head_rot = GridDirection.down;
-    grid.updateGameState();
-    grid.printGrid();
-
-    const allocator = gpa.allocator();
-
-    const ai = AIcontroller(GameState(32)).init(&grid, allocator);
-
-    for (ai.getCellNeighbors(.{ 0, 0 })) |value| {
-        std.debug.print("{}", .{value});
-    }
-}
 
 pub fn main() !void {
-    std.debug.print("hellow world", .{});
+    // std.debug.print("{}\n", .{GameState(10)._grid_size});
+
+    var prng = std.rand.DefaultPrng.init(2);
+    const random = prng.random();
+
+    // var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    // defer if (gpa.deinit() == .leak) std.debug.print("Allocator leaked!\n", .{});
+
+    // const allocator = gpa.allocator();
+
+    const allocator = std.heap.raw_c_allocator;
+
+    var grid = GameState(128).init(5, random);
+
+    const ai = AIcontroller(@TypeOf(grid)).init(&grid, allocator);
+
+    const _path = (try ai.getPathToTarget(grid.fruit_pos)).?;
+    defer allocator.free(_path);
+
+    // var timer = try std.time.Timer.start();
+
+    // for (0..1000) |_| {
+    //     const _path = (try ai.getPathToTarget(grid.fruit_pos)).?;
+    //     defer allocator.free(_path);
+    //     for (_path) |value| {
+    //         grid.head_rot = value;
+    //         grid.updateGameState();
+    //         // grid.printGrid();
+    //     }
+    // }
+
+    // std.debug.print("fruits eaten per second = {}", .{100 * 1_000_000_000 / timer.read()});
 }
