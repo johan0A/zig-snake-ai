@@ -2,7 +2,7 @@
 
 a very low peformance snake game with a very high performance snake ai slapped on it:<br>
 
-|Scenarios(128x128 grid)|Fruit Eaten per Second|
+|Scenarios(128x128 grid)|Fruits Eaten per Second|
 |-|-|
 | Game loop running|70|
 | Path finding only (without game loop)|9929 (lol)|
