@@ -222,7 +222,12 @@ fn AIcontroller(GameStateType: type) type {
         }
 
         fn getPathToTarget(self: Self, target: @Vector(2, i32)) !?[]GridDirection {
-            var arena = std.heap.ArenaAllocator.init(self.allocator);
+            var buffer: [grid_size * grid_size * 8]u8 = undefined;
+            var fba = std.heap.FixedBufferAllocator.init(&buffer);
+            const general_allocator = fba.allocator();
+            // const general_allocator = self.allocator;
+
+            var arena = std.heap.ArenaAllocator.init(general_allocator);
             defer arena.deinit();
             const allocator = arena.allocator();
 
@@ -267,7 +272,6 @@ fn AIcontroller(GameStateType: type) type {
                     }
                     const path_slice = try path.toOwnedSlice();
                     std.mem.reverse(GridDirection, path_slice);
-                    std.debug.print("{}\n", .{number_grid_read});
                     return path_slice;
                 }
 
@@ -347,7 +351,7 @@ test "AIcontroller.getCellNeighbors" {
 pub fn main() !void {
     // std.debug.print("{}\n", .{GameState(10)._grid_size});
 
-    var prng = std.rand.DefaultPrng.init(2);
+    var prng = std.rand.DefaultPrng.init(3);
     const random = prng.random();
 
     // var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -357,24 +361,21 @@ pub fn main() !void {
 
     const allocator = std.heap.raw_c_allocator;
 
-    var grid = GameState(128).init(5, random);
+    var grid = GameState(128).init(6, random);
 
     const ai = AIcontroller(@TypeOf(grid)).init(&grid, allocator);
 
-    const _path = (try ai.getPathToTarget(grid.fruit_pos)).?;
-    defer allocator.free(_path);
+    var timer = try std.time.Timer.start();
 
-    // var timer = try std.time.Timer.start();
+    for (0..1000) |_| {
+        const _path = (try ai.getPathToTarget(grid.fruit_pos)).?;
+        defer allocator.free(_path);
+        for (_path) |value| {
+            grid.head_rot = value;
+            // grid.updateGameState();
+            // grid.printGrid();
+        }
+    }
 
-    // for (0..1000) |_| {
-    //     const _path = (try ai.getPathToTarget(grid.fruit_pos)).?;
-    //     defer allocator.free(_path);
-    //     for (_path) |value| {
-    //         grid.head_rot = value;
-    //         grid.updateGameState();
-    //         // grid.printGrid();
-    //     }
-    // }
-
-    // std.debug.print("fruits eaten per second = {}", .{100 * 1_000_000_000 / timer.read()});
+    std.debug.print("fruits eaten per second = {}", .{100 * 1_000_000_000 / timer.read()});
 }
