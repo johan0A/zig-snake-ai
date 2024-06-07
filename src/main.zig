@@ -1,8 +1,6 @@
 const std = @import("std");
 const expect = std.testing.expect;
 
-const utils = @import("utils.zig");
-
 const CellState = union(enum) {
     snake: u32,
     empty: void,
